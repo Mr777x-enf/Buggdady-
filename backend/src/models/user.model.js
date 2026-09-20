@@ -21,8 +21,25 @@ const findUserByEmail = async (email) => {
 
     return result.rows[0];
 };
+const updateUserPassword = async (userId, hashedPassword) => {
+    const result = await db.query(
+        `
+        UPDATE users
+        SET password = $1
+        WHERE id = $2
+        RETURNING id, name, email
+        `,
+        [hashedPassword, userId]
+    );
+
+    return result.rows[0];
+};
+
+
 
 module.exports = {
     createUser,
-    findUserByEmail
+    findUserByEmail,
+
+    updateUserPassword
 };

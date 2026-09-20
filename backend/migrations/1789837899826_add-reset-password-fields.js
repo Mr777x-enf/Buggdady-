@@ -4,10 +4,7 @@
 export const shorthands = undefined;
 
 /**
- * Add forgot-password fields
- *
  * @param pgm {import('node-pg-migrate').MigrationBuilder}
- * @returns {Promise<void> | void}
  */
 export const up = (pgm) => {
     pgm.addColumns("users", {
@@ -22,10 +19,7 @@ export const up = (pgm) => {
 };
 
 /**
- * Remove forgot-password fields
- *
  * @param pgm {import('node-pg-migrate').MigrationBuilder}
- * @returns {Promise<void> | void}
  */
 export const down = (pgm) => {
     pgm.dropColumns("users", [
