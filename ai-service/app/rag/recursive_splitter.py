@@ -1,10 +1,15 @@
-def recursive_split_chunk(
-    chunk: dict,
-    max_chars: int = 4000,
-    overlap: int = 300
-) -> list[dict]:
+from copy import copy
 
-    content = chunk["content"]
+from app.rag.models import CodeChunk
+
+
+def recursive_split_chunk(
+    chunk: CodeChunk,
+    max_chars: int = 4000,
+    overlap: int = 300,
+) -> list[CodeChunk]:
+
+    content = chunk.source
 
     # Already small enough
     if len(content) <= max_chars:
@@ -14,7 +19,7 @@ def recursive_split_chunk(
         "\n\n",
         "\n",
         " ",
-        ""
+        "",
     ]
 
     for separator in separators:
@@ -54,32 +59,58 @@ def recursive_split_chunk(
         if len(pieces) <= 1:
             continue
 
-        final_chunks = []
+        return _create_chunks(
+            chunk,
+            pieces,
+        )
 
-        for piece in pieces:
+    # Character-level fallback
+    return _split_by_characters(
+        chunk,
+        max_chars,
+        overlap,
+    )
 
-            new_chunk = {
-                **chunk,
-                "content": piece
-            }
 
-            if len(piece) > max_chars:
+def _create_chunks(
+    chunk: CodeChunk,
+    pieces: list[str],
+) -> list[CodeChunk]:
 
-                final_chunks.extend(
-                    recursive_split_chunk(
-                        new_chunk,
-                        max_chars,
-                        overlap
-                    )
-                )
-
-            else:
-                final_chunks.append(new_chunk)
-
-        return final_chunks
-
-    # Last fallback
     final_chunks = []
+
+    current_line = chunk.start_line
+
+    for piece in pieces:
+
+        new_chunk = copy(chunk)
+
+        new_chunk.source = piece
+
+        line_count = piece.count("\n")
+
+        new_chunk.start_line = current_line
+
+        new_chunk.end_line = (
+            current_line + line_count
+        )
+
+        final_chunks.append(new_chunk)
+
+        current_line = new_chunk.end_line + 1
+
+    return final_chunks
+
+
+def _split_by_characters(
+    chunk: CodeChunk,
+    max_chars: int,
+    overlap: int,
+) -> list[CodeChunk]:
+
+    final_chunks = []
+
+    content = chunk.source
 
     start = 0
 
@@ -89,13 +120,34 @@ def recursive_split_chunk(
 
         piece = content[start:end]
 
-        new_chunk = {
-            **chunk,
-            "content": piece
-        }
+        new_chunk = copy(chunk)
+
+        new_chunk.source = piece
+
+        # Number of lines before this piece
+        lines_before = content[:start].count("\n")
+
+        # Number of lines inside this piece
+        lines_inside = piece.count("\n")
+
+        new_chunk.start_line = (
+            chunk.start_line + lines_before
+        )
+
+        new_chunk.end_line = (
+            new_chunk.start_line + lines_inside
+        )
 
         final_chunks.append(new_chunk)
 
-        start = end - overlap
+        if end >= len(content):
+            break
+
+        next_start = end - overlap
+
+        if next_start <= start:
+            next_start = end
+
+        start = next_start
 
     return final_chunks
