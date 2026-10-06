@@ -81,9 +81,12 @@ def _create_chunks(
 
     current_line = chunk.start_line
 
-    for piece in pieces:
+    for index, piece in enumerate(pieces):
 
         new_chunk = copy(chunk)
+
+        # Give every split chunk a unique ID
+        new_chunk.id = f"{chunk.id}:split:{index}"
 
         new_chunk.source = piece
 
@@ -121,6 +124,11 @@ def _split_by_characters(
         piece = content[start:end]
 
         new_chunk = copy(chunk)
+
+        # Give every split chunk a unique ID
+        new_chunk.id = (
+            f"{chunk.id}:split:{len(final_chunks)}"
+        )
 
         new_chunk.source = piece
 

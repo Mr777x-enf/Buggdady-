@@ -10,17 +10,17 @@ router = APIRouter()
 class ChatRequest(BaseModel):
     session_id: str
     question: str
+    repository_id: str
+    commit_sha: str
 
 
 @router.post("/")
 async def chat(request: ChatRequest):
-
-    answer = await process_chat(
-        request.session_id,
-        request.question
+    result = await process_chat(
+        session_id=request.session_id,
+        question=request.question,
+        repository_id=request.repository_id,
+        commit_sha=request.commit_sha,
     )
 
-    return {
-        "session_id": request.session_id,
-        "answer": answer
-    }
+    return result
