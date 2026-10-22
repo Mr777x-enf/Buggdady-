@@ -1,11 +1,11 @@
-from tree_sitter import Parser
+from tree_sitter import Language, Parser
 import tree_sitter_javascript as ts_javascript
 
 from app.rag.models import CodeChunk
-from app.rag.parser import CodeParser
+from app.rag.parser import  LanguageParser
 
 
-class JavaScriptParser(CodeParser):
+class JavaScriptParser(LanguageParser):
 
     LANGUAGE = "javascript"
     PARSER_VERSION = "javascript-v1"
@@ -13,7 +13,7 @@ class JavaScriptParser(CodeParser):
 
     def __init__(self):
         self.parser = Parser(
-            ts_javascript.language()
+            Language(ts_javascript.language())
         )
 
     def parse_file(

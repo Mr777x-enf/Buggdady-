@@ -1,4 +1,4 @@
-from tree_sitter import Parser
+from tree_sitter import Language, Parser
 import tree_sitter_go as ts_go
 
 from app.rag.models import CodeChunk
@@ -12,7 +12,7 @@ class GoParser(LanguageParser):
     CHUNKER_VERSION = "recursive-v1"
 
     def __init__(self):
-        self.parser = Parser(ts_go.language())
+        self.parser = Parser(Language(ts_go.language()))
 
     def parse_file(
         self,

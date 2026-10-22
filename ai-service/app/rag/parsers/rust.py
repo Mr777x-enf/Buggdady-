@@ -1,4 +1,4 @@
-from tree_sitter import Parser
+from tree_sitter import Language, Parser
 import tree_sitter_rust as ts_rust
 
 from app.rag.models import CodeChunk
@@ -12,7 +12,7 @@ class RustParser(LanguageParser):
     CHUNKER_VERSION = "recursive-v1"
 
     def __init__(self):
-        self.parser = Parser(ts_rust.language())
+        self.parser = Parser(Language(ts_rust.language()))
 
     def parse_file(
         self,

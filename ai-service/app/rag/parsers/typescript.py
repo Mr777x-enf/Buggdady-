@@ -1,4 +1,4 @@
-from tree_sitter import Parser
+from tree_sitter import Language, Parser
 import tree_sitter_typescript as ts_typescript
 
 from app.rag.models import CodeChunk
@@ -23,7 +23,7 @@ class TypeScriptParser(LanguageParser):
         # function getUser(id: number): User {}
         #
         self.parser = Parser(
-            ts_typescript.language_typescript()
+            Language(ts_typescript.language_typescript())
         )
 
     def parse_file(

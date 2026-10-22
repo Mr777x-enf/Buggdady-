@@ -1,4 +1,4 @@
-from tree_sitter import Parser
+from tree_sitter import Language, Parser
 import tree_sitter_php as ts_php
 
 from app.rag.models import CodeChunk
@@ -12,7 +12,7 @@ class PHPParser(LanguageParser):
     CHUNKER_VERSION = "recursive-v1"
 
     def __init__(self):
-        self.parser = Parser(ts_php.language_php())
+        self.parser = Parser(Language(ts_php.language_php()))
 
     def parse_file(
         self,

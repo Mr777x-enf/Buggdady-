@@ -19,8 +19,13 @@ async def process_chat(
         "attempt": 0,
         "status": "started",
     }
+    config = {
+        "configurable": {
+            "thread_id": session_id
+        }
+    }
 
-    final_state = await agent_graph.ainvoke(initial_state)
+    final_state = await agent_graph.ainvoke(initial_state,config=config,)
 
     return {
         "session_id": session_id,

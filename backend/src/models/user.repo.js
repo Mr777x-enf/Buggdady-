@@ -12,3 +12,8 @@ const createRepository = async (userId, repoLink, sessionId) => {
 
     return result.rows[0];
 };
+
+ 
+module.exports = {
+    createRepository
+};

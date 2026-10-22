@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tree_sitter import Parser
+from tree_sitter import Language, Parser
 import tree_sitter_c as ts_c
 import tree_sitter_cpp as ts_cpp
 
@@ -17,8 +17,8 @@ class CppParser(LanguageParser):
     CPP_EXTENSIONS = {".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx"}
 
     def __init__(self):
-        self.c_parser = Parser(ts_c.language())
-        self.cpp_parser = Parser(ts_cpp.language())
+        self.c_parser = Parser(Language(ts_c.language()))
+        self.cpp_parser = Parser(Language(ts_cpp.language()))
 
     def parse_file(
         self,

@@ -11,7 +11,7 @@ const {
 
 const router = express.Router();
 
-router.post("/", authenticate, chatController);
+router.post("/", chatController);
 router.get("/history/:session_id", authenticate, getHistoryController);
 router.delete("/history/:session_id", authenticate, deleteHistoryController);
 

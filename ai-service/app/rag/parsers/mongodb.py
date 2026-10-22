@@ -1,4 +1,4 @@
-from tree_sitter import Parser
+from tree_sitter import Language, Parser
 import tree_sitter_javascript as ts_javascript
 
 from app.rag.models import CodeChunk
@@ -38,7 +38,7 @@ class MongoDBParser(LanguageParser):
     }
 
     def __init__(self):
-        self.parser = Parser(ts_javascript.language())
+        self.parser = Parser(Language(ts_javascript.language()))
 
     def parse_file(
         self,

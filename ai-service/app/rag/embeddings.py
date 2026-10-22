@@ -1,23 +1,29 @@
 import os
 
-from openai import OpenAI
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 from app.rag.models import CodeChunk
 
 
-EMBEDDING_MODEL = "text-embedding-3-small"
+load_dotenv()
+
+
+EMBEDDING_MODEL = "gemini-embedding-2"
+EMBEDDING_DIMENSION = 1536
 DEFAULT_BATCH_SIZE = 100
 
 
-client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+client = genai.Client(
+    api_key=os.getenv("GEMINI_API_KEY")
 )
 
 
 def create_embedding(text: str) -> list[float]:
     """
     Create an embedding for a single piece of text.
-    Useful for embedding individual queries.
+    Used for embedding user queries.
     """
 
     if not text or not text.strip():
@@ -25,12 +31,23 @@ def create_embedding(text: str) -> list[float]:
             "Cannot create embedding for empty text"
         )
 
-    response = client.embeddings.create(
+    response = client.models.embed_content(
         model=EMBEDDING_MODEL,
-        input=text,
+        contents=text,
+        config=types.EmbedContentConfig(
+            output_dimensionality=EMBEDDING_DIMENSION
+        ),
     )
 
-    return response.data[0].embedding
+    embedding = response.embeddings[0].values
+
+    if len(embedding) != EMBEDDING_DIMENSION:
+        raise ValueError(
+            f"Expected {EMBEDDING_DIMENSION}-dimensional embedding, "
+            f"got {len(embedding)}"
+        )
+
+    return embedding
 
 
 def create_embeddings(
@@ -39,13 +56,6 @@ def create_embeddings(
 ) -> list[tuple[CodeChunk, list[float]]]:
     """
     Create embeddings for multiple CodeChunks.
-
-    Chunks are processed in batches to avoid making
-    one API request for every chunk.
-
-    Returns:
-        A list of:
-        (CodeChunk, embedding)
     """
 
     if batch_size <= 0:
@@ -65,7 +75,6 @@ def create_embeddings(
         len(chunks),
         batch_size,
     ):
-
         batch = chunks[
             start:start + batch_size
         ]
@@ -73,7 +82,6 @@ def create_embeddings(
         texts = []
 
         for chunk in batch:
-
             if not chunk.source or not chunk.source.strip():
                 raise ValueError(
                     f"Cannot create embedding for empty chunk: {chunk.id}"
@@ -81,19 +89,30 @@ def create_embeddings(
 
             texts.append(chunk.source)
 
-        response = client.embeddings.create(
+        response = client.models.embed_content(
             model=EMBEDDING_MODEL,
-            input=texts,
+            contents=texts,
+            config=types.EmbedContentConfig(
+                output_dimensionality=EMBEDDING_DIMENSION
+            ),
         )
 
         for chunk, embedding_data in zip(
             batch,
-            response.data,
+            response.embeddings,
         ):
+            embedding = embedding_data.values
+
+            if len(embedding) != EMBEDDING_DIMENSION:
+                raise ValueError(
+                    f"Expected {EMBEDDING_DIMENSION}-dimensional embedding, "
+                    f"got {len(embedding)}"
+                )
+
             results.append(
                 (
                     chunk,
-                    embedding_data.embedding,
+                    embedding,
                 )
             )
 
