@@ -2,37 +2,45 @@ const { ingestRepository } = require("../services/ingestionService");
 
 const ingestionController = async (req, res) => {
     try {
-        const { repo_url, session_id, repository_id } = req.body;
+        const { repo_url, session_id } = req.body;
 
-        if (!repo_url || !session_id || !repository_id) {
+        if (session_id && typeof session_id !== "string") {
             return res.status(400).json({
-                message: "Repository URL, session ID, and repository ID are required",
+                message: "Invalid session ID",
             });
         }
 
-        let parsedUrl;
-
-        try {
-            parsedUrl = new URL(repo_url);
-        } catch {
+        if (!session_id && !repo_url) {
             return res.status(400).json({
-                message: "Invalid repository URL",
+                message: "Repository URL is required",
             });
         }
 
-        if (
-            parsedUrl.protocol !== "https:" ||
-            parsedUrl.hostname !== "github.com"
-        ) {
-            return res.status(400).json({
-                message: "A valid HTTPS GitHub repository URL is required",
-            });
+        if (!session_id) {
+            let parsedUrl;
+
+            try {
+                parsedUrl = new URL(repo_url);
+            } catch {
+                return res.status(400).json({
+                    message: "Invalid repository URL",
+                });
+            }
+
+            if (
+                parsedUrl.protocol !== "https:" ||
+                parsedUrl.hostname !== "github.com"
+            ) {
+                return res.status(400).json({
+                    message: "A valid HTTPS GitHub repository URL is required",
+                });
+            }
         }
 
         const result = await ingestRepository({
+            userId: req.user.id,
             repo_url,
-            session_id,
-            repository_id,
+            sessionId: session_id
         });
 
         return res.status(200).json({

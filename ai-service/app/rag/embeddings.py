@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from google import genai
@@ -7,7 +8,9 @@ from google.genai import types
 from app.rag.models import CodeChunk
 
 
-load_dotenv()
+load_dotenv(
+    dotenv_path=Path(__file__).resolve().parents[2] / ".env"
+)
 
 
 EMBEDDING_MODEL = "gemini-embedding-2"
@@ -96,6 +99,12 @@ def create_embeddings(
                 output_dimensionality=EMBEDDING_DIMENSION
             ),
         )
+
+        if len(response.embeddings) != len(batch):
+            raise ValueError(
+                f"Expected {len(batch)} embeddings, "
+                f"got {len(response.embeddings)}"
+            )
 
         for chunk, embedding_data in zip(
             batch,

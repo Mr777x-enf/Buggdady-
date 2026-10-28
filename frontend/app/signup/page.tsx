@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Bug,
   Eye,
@@ -13,19 +12,17 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
-import {
-  postAuthRequest,
-  readAuthTokens,
-  setAuthSession,
-} from "@/lib/auth-api";
+import { AuthRequestError, postAuthRequest } from "@/lib/auth-api";
 
 export default function SignupPage() {
-  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [emailToVerify, setEmailToVerify] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   async function handleSignup(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,22 +54,25 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const payload = await postAuthRequest(
+      await postAuthRequest(
         "api/users/register",
         { name, email, password },
         "Unable to create your account. Please try again.",
+        { retry: false },
       );
-      const tokens = readAuthTokens(payload);
-
-      if (!tokens) {
-        setError("The server returned an unexpected response. Please try again.");
+      setEmailToVerify(email);
+      setSuccess(true);
+    } catch (requestError) {
+      if (
+        requestError instanceof AuthRequestError &&
+        requestError.status === 503
+      ) {
+        setEmailToVerify(email);
+        setResendMessage(requestError.message);
+        setSuccess(true);
         return;
       }
 
-      setAuthSession(tokens);
-      setSuccess(true);
-      window.setTimeout(() => router.replace("/chat/sessionId"), 700);
-    } catch (requestError) {
       setError(
         requestError instanceof Error
           ? requestError.message
@@ -80,6 +80,37 @@ export default function SignupPage() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resendVerificationEmail() {
+    if (!emailToVerify || resending) return;
+    setResending(true);
+    setResendMessage("");
+
+    try {
+      const payload = await postAuthRequest(
+        "api/users/resend-verification",
+        { email: emailToVerify },
+        "Unable to request a verification email. Please try again.",
+        { retry: false },
+      );
+      const message =
+        typeof payload === "object" &&
+        payload !== null &&
+        "message" in payload &&
+        typeof payload.message === "string"
+          ? payload.message
+          : "If an unverified account exists for that email, a verification link will be sent.";
+      setResendMessage(message);
+    } catch (requestError) {
+      setResendMessage(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to request a verification email. Please try again.",
+      );
+    } finally {
+      setResending(false);
     }
   }
 
@@ -116,9 +147,20 @@ export default function SignupPage() {
               </p>
             )}
             {success && (
-              <p role="status" className="text-sm text-emerald-300">
-                Account created. Redirecting...
-              </p>
+              <div role="status" className="space-y-2 text-sm text-emerald-300">
+                <p>{resendMessage || `Account created. Check ${emailToVerify} for a verification link before signing in.`}</p>
+                <button
+                  type="button"
+                  onClick={() => void resendVerificationEmail()}
+                  disabled={resending}
+                  className="font-medium text-indigo-300 underline underline-offset-4 disabled:opacity-60"
+                >
+                  {resending ? "Sending..." : "Resend verification email"}
+                </button>
+                {resendMessage && (
+                  <p className="text-xs text-slate-400">{resendMessage}</p>
+                )}
+              </div>
             )}
             <div>
               <label

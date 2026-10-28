@@ -18,7 +18,7 @@ def _handle_remove_error(func, path, exc_info):
         pass
 
 
-def cleanup_repository(repo_dir: str) -> None:
+def cleanup_repository(repo_dir: str | None) -> None:
     """
     Safely remove a temporary cloned repository.
     Retries briefly if Windows temporarily locks a file.

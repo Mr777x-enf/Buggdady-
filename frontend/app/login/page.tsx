@@ -13,11 +13,7 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import { FaGithub } from "react-icons/fa";
-import {
-  postAuthRequest,
-  readAuthTokens,
-  setAuthSession,
-} from "@/lib/auth-api";
+import { postAuthRequest } from "@/lib/auth-api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +24,9 @@ export default function LoginPage() {
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     if (loading || success) return;
+
     setError("");
     setSuccess(false);
 
@@ -44,21 +42,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const payload = await postAuthRequest(
+      // Backend sets accessToken and refreshToken as HttpOnly cookies.
+      // The response JSON contains the message and user, not the tokens.
+      await postAuthRequest(
         "api/users/login",
         { email, password },
         "Unable to sign in. Check your details and try again.",
+        { retry: false },
       );
-      const tokens = readAuthTokens(payload);
 
-      if (!tokens) {
-        setError("The server returned an unexpected response. Please try again.");
-        return;
-      }
-
-      setAuthSession(tokens);
       setSuccess(true);
-      router.replace("/chat/sessionId");
+      router.replace("/chat");
+      router.refresh();
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -98,15 +93,20 @@ export default function LoginPage() {
 
           <form onSubmit={handleLogin} className="space-y-5">
             {error && (
-              <p role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">
+              <p
+                role="alert"
+                className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300"
+              >
                 {error}
               </p>
             )}
+
             {success && (
               <p role="status" className="text-sm text-emerald-300">
                 Login successful. Redirecting...
               </p>
             )}
+
             <div>
               <label
                 htmlFor="email"

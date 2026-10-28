@@ -1,42 +1,56 @@
-const nodeMailer = require("nodemailer");
 
-const transporter = nodeMailer.createTransport({
+const nodemailer = require("nodemailer");
+const path = require("path");
+const dotenv = require("dotenv");
+
+const envPath = path.resolve(__dirname, "../../.env");
+const envResult = dotenv.config({ path: envPath });
+
+if (envResult.error) {
+  console.error("Failed to load .env:", envResult.error.message);
+}
+
+const mailUser = process.env.MAIL_USER || process.env.EMAIL_USER;
+const clientId = process.env.CLIENT_ID?.trim();
+const clientSecret = process.env.CLIENT_SECRET?.trim();
+const refreshToken = process.env.REFRESH_TOKEN?.trim();
+
+if (!mailUser || !clientId || !clientSecret || !refreshToken) {
+  throw new Error("Missing Gmail OAuth environment variables.");
+}
+
+const transporter = nodemailer.createTransport({
   service: "gmail",
-
   auth: {
     type: "OAuth2",
-    user: process.env.EMAIL_USER,
-    clientId: process.env.CLIENT_ID,
-    clientSecret: process.env.CLIENT_SECRET,
-    refreshToken: process.env.REFRESH_TOKEN
-  }
+    user: mailUser,
+    clientId,
+    clientSecret,
+    refreshToken,
+  },
 });
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.error("Error verifying transporter:", error);
-  } else {
-    console.log("Transporter verified successfully.");
+async function verifyTransporter() {
+  try {
+    await transporter.verify();
+    console.log("Gmail transporter verified successfully.");
+  } catch (error) {
+    console.error("Gmail transporter verification failed:", error.message);
   }
-});
+}
+
+verifyTransporter();
 
 async function sendEmail(to, subject, text) {
-  try {
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: to,
-      subject: subject,
-      text: text
-    };
+  const info = await transporter.sendMail({
+    from: mailUser,
+    to,
+    subject,
+    text,
+  });
 
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log("Email sent successfully:", info.messageId);
-
-    return info;
-  } catch (error) {
-    console.error("Error sending email:", error);
-  }
+  console.log("Email sent:", info.messageId);
+  return info;
 }
 
 module.exports = sendEmail;

@@ -1,6 +1,6 @@
 
 const {
-    createMessage,
+    createMessagePair,
     getSessionForUser
 } = require("../models/history.model");
 
@@ -12,13 +12,18 @@ const chatController = async (req, res) => {
     try {
         const { session_id, question } = req.body;
 
-        if (!session_id || !question) {
+        if (
+            typeof session_id !== "string" ||
+            !session_id ||
+            typeof question !== "string" ||
+            !question.trim()
+        ) {
             return res.status(400).json({
                 message: "Session ID and question are required"
             });
         }
 
-        const userId = 3;
+        const userId = req.user.id;
 
         const session = await getSessionForUser(
             session_id,
@@ -31,15 +36,20 @@ const chatController = async (req, res) => {
             });
         }
 
-        await createMessage(
-            session_id,
-            "user",
-            question
-        );
+        if (
+            session.ingestion_status !== "indexed" ||
+            !session.commit_sha
+        ) {
+            return res.status(409).json({
+                message: "Repository ingestion is not complete"
+            });
+        }
 
         const data = await postAiService("api/chat/", {
             session_id,
-            question
+            question,
+            repository_id: String(session.id),
+            commit_sha: session.commit_sha
         });
 
         const answer = data.answer;
@@ -50,9 +60,9 @@ const chatController = async (req, res) => {
             });
         }
 
-        await createMessage(
+        await createMessagePair(
             session_id,
-            "assistant",
+            question,
             answer
         );
 

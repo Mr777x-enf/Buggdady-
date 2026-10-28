@@ -3,13 +3,51 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bug, ArrowLeft, ArrowRight } from "lucide-react";
+import {
+  Bug,
+  ArrowLeft,
+  ArrowRight,
+  LoaderCircle,
+} from "lucide-react";
+import { postAuthRequest } from "@/lib/auth-api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (loading) return;
+    setError("");
+    setSubmitted(false);
+
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail) {
+      setError("Enter your email address.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await postAuthRequest(
+        "api/users/forgot-password",
+        { email: normalizedEmail },
+        "Unable to send reset instructions. Please try again.",
+        { retry: false },
+      );
+      setSubmitted(true);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to send reset instructions. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -50,11 +88,25 @@ export default function ForgotPasswordPage() {
                 </p>
               </div>
 
-              <p role="status" className="mt-6 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-200">
-                Password recovery is not available yet: the backend does not expose the required reset endpoints.
-              </p>
+              {submitted && (
+                <div
+                  role="status"
+                  className="mt-6 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200"
+                >
+                  If an account exists for that email, you will receive
+                  instructions to reset your password.
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                {error && (
+                  <p
+                    role="alert"
+                    className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300"
+                  >
+                    {error}
+                  </p>
+                )}
                 <div>
                   <label
                     htmlFor="email"
@@ -70,19 +122,33 @@ export default function ForgotPasswordPage() {
                     autoComplete="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(event) => setEmail(event.target.value)}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setError("");
+                      setSubmitted(false);
+                    }}
                     required
+                    disabled={loading}
                     className="h-12 w-full rounded-lg border border-white/10 bg-[#090b14] px-4 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/15"
                   />
                 </div>
 
                 <button
                   type="submit"
-                  disabled
+                  disabled={loading}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 px-4 text-sm font-semibold text-white transition hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-[#10131e] disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Send reset instructions
-                  <ArrowRight className="h-4 w-4" />
+                  {loading ? (
+                    <>
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                      Sending instructions...
+                    </>
+                  ) : (
+                    <>
+                      Send reset instructions
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </button>
               </form>
           </>

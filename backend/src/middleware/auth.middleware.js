@@ -2,38 +2,26 @@ const jwt = require("jsonwebtoken");
 
 const authenticate = (req, res, next) => {
     try {
-        // Get Authorization header
         const authHeader = req.headers.authorization;
+        const bearerToken = authHeader?.startsWith("Bearer ")
+            ? authHeader.slice("Bearer ".length)
+            : null;
+        const token = bearerToken || req.cookies?.accessToken;
 
-        if (!authHeader) {
+        if (!token) {
             return res.status(401).json({
                 message: "Authentication required"
             });
         }
 
-        // Header looks like:
-        // Bearer eyJhbGciOiJIUzI1NiIs...
-        const token = authHeader.split(" ")[1];
-
-        if (!token) {
-            return res.status(401).json({
-                message: "Access token required"
-            });
-        }
-
-        // Verify access token
         const decoded = jwt.verify(
             token,
             process.env.JWT_ACCESS_SECRET
         );
 
-        // Store user information in request
         req.user = decoded;
-
-        // Token is valid → continue to controller
         next();
-
-    } catch (error) {
+    } catch {
         return res.status(401).json({
             message: "Invalid or expired access token"
         });
@@ -41,4 +29,3 @@ const authenticate = (req, res, next) => {
 };
 
 module.exports = authenticate;
-

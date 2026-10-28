@@ -1,9 +1,21 @@
 const {
     getMessagesBySession,
     getSessionForUser,
-    deleteMessagesBySession
+    deleteMessagesBySession,
+    getSessionsForUser
 } = require("../models/history.model");
 
+const getSessionsController = async (req, res) => {
+    try {
+        const sessions = await getSessionsForUser(req.user.id);
+        return res.status(200).json({ sessions });
+    } catch (error) {
+        console.error("Get sessions error:", error);
+        return res.status(500).json({
+            message: "Internal server error"
+        });
+    }
+};
 
 const getHistoryController = async (req, res) => {
 
@@ -36,7 +48,15 @@ const getHistoryController = async (req, res) => {
 
 
         return res.status(200).json({
-            messages
+            messages,
+            repository: {
+                id: repository.id,
+                repository_id: repository.id,
+                repo_link: repository.repo_link,
+                session_id: repository.session_id,
+                commit_sha: repository.commit_sha,
+                ingestion_status: repository.ingestion_status
+            }
         });
 
 
@@ -106,6 +126,7 @@ const deleteHistoryController = async (req, res) => {
 
 
 module.exports = {
+    getSessionsController,
     getHistoryController,
     deleteHistoryController
 };

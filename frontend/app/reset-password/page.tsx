@@ -10,7 +10,10 @@ import {
   ArrowRight,
   LockKeyhole,
   AlertCircle,
+  CheckCircle2,
+  LoaderCircle,
 } from "lucide-react";
+import { postAuthRequest } from "@/lib/auth-api";
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams();
@@ -20,12 +23,15 @@ function ResetPasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
+    if (loading || success) return;
     setError("");
 
     if (!token) {
@@ -43,9 +49,27 @@ function ResetPasswordForm() {
       return;
     }
 
-    setError(
-      "Password reset is not available yet because the backend does not expose a reset endpoint.",
-    );
+    setLoading(true);
+
+    try {
+      await postAuthRequest(
+        `api/users/reset-password/${encodeURIComponent(token)}`,
+        { password },
+        "Unable to reset your password. Please try again.",
+        { retry: false },
+      );
+      setSuccess(true);
+      setPassword("");
+      setConfirmPassword("");
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Unable to reset your password. Please try again.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -92,9 +116,19 @@ function ResetPasswordForm() {
                 </div>
               )}
 
-              {token && (
-                <div className="mb-5 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-200">
-                  The backend does not currently expose a password-reset endpoint, so this link cannot be verified or used yet.
+              {success && (
+                <div
+                  role="status"
+                  className="mb-5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-200"
+                >
+                  <CheckCircle2 size={18} className="mr-2 inline" />
+                  Your password has been updated. You can now sign in.
+                  <Link
+                    href="/login"
+                    className="mt-2 block font-semibold underline"
+                  >
+                    Go to login
+                  </Link>
                 </div>
               )}
 
@@ -135,7 +169,7 @@ function ResetPasswordForm() {
                       autoComplete="new-password"
                       minLength={8}
                       required
-                      disabled={!token}
+                      disabled={!token || loading || success}
                       className="w-full rounded-xl border border-white/10 bg-[#0c0e19] py-3 pl-11 pr-12 text-sm outline-none transition placeholder:text-gray-600 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:opacity-50"
                     />
 
@@ -168,17 +202,15 @@ function ResetPasswordForm() {
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       value={confirmPassword}
-                      onChange={(event) =>
-                        {
-                          setConfirmPassword(event.target.value);
-                          setError("");
-                        }
-                      }
+                      onChange={(event) => {
+                        setConfirmPassword(event.target.value);
+                        setError("");
+                      }}
                       placeholder="Enter your new password again"
                       autoComplete="new-password"
                       minLength={8}
                       required
-                      disabled={!token}
+                      disabled={!token || loading || success}
                       className="w-full rounded-xl border border-white/10 bg-[#0c0e19] py-3 pl-11 pr-12 text-sm outline-none transition placeholder:text-gray-600 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 disabled:opacity-50"
                     />
 
@@ -205,10 +237,19 @@ function ResetPasswordForm() {
 
                 <button
                   type="submit"
-                  disabled={!token}
+                  disabled={!token || loading || success}
                   className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 font-semibold transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Reset password <ArrowRight size={18} />
+                  {loading ? (
+                    <>
+                      <LoaderCircle size={18} className="animate-spin" />
+                      Updating password...
+                    </>
+                  ) : (
+                    <>
+                      Reset password <ArrowRight size={18} />
+                    </>
+                  )}
                 </button>
               </form>
 

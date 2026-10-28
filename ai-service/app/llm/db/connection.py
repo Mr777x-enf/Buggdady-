@@ -1,10 +1,13 @@
 import os
+from pathlib import Path
 
 import asyncpg
 from dotenv import load_dotenv
 from pgvector.asyncpg import register_vector
 
-load_dotenv()
+load_dotenv(
+    dotenv_path=Path(__file__).resolve().parents[3] / ".env"
+)
 
 
 async def get_db():
